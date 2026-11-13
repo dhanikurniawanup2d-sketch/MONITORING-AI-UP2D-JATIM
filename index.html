@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anggaran AI/AO UP2D Jatim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: bilah atas + navigasi tab; tiap tab satu tampilan kerja. Ringkasan di atas, detail di bawah. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#14212e; --muted:#5b6b7b; --line:#dbe2ea;
+  --accent:#0b5c8f; --accent-soft:#e3eff7; --good:#1c7a4a; --good-soft:#e2f3ea;
+  --warn:#9a6200; --warn-soft:#fbf0d9; --bad:#b3261e; --bad-soft:#fbe5e3;
+  --bar1:#0b5c8f; --bar2:#57a3cf; --bar3:#c9d6e2;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",Arial,sans-serif; --mono:"IBM Plex Mono",Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1720; --panel:#16212c; --ink:#e4ebf2; --muted:#93a4b5; --line:#2a3846;
+  --accent:#5db3e6; --accent-soft:#16324a; --good:#5fd197; --good-soft:#123426;
+  --warn:#f0b54a; --warn-soft:#3a2c10; --bad:#ff8a80; --bad-soft:#3d1a18;
+  --bar1:#5db3e6; --bar2:#2f7cad; --bar3:#33475a; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1720; --panel:#16212c; --ink:#e4ebf2; --muted:#93a4b5; --line:#2a3846;
+  --accent:#5db3e6; --accent-soft:#16324a; --good:#5fd197; --good-soft:#123426;
+  --warn:#f0b54a; --warn-soft:#3a2c10; --bad:#ff8a80; --bad-soft:#3d1a18;
+  --bar1:#5db3e6; --bar2:#2f7cad; --bar3:#33475a; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font:600 18px var(--display);margin:0;letter-spacing:.2px}
+header .sub{color:var(--muted);font-size:12px}
+.grow{flex:1}
+nav{display:flex;gap:4px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{padding:10px 12px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav a.on{color:var(--accent);border-bottom-color:var(--accent)}
+main{padding:20px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h2{font:600 20px var(--display);margin:0;text-wrap:balance}
+h3{font:600 15px var(--display);margin:0 0 8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.tile .l{color:var(--muted);font-size:12px}.tile .v{font:600 22px var(--display);font-variant-numeric:tabular-nums}
+.tile .n{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px;background:var(--bg);position:sticky;top:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--accent-soft)}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap;background:var(--accent-soft);color:var(--accent)}
+.chip.good{background:var(--good-soft);color:var(--good)}.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}.chip.mute{background:var(--bg);color:var(--muted)}
+.meter{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;background:var(--accent)}.meter i.over{background:var(--bad)}
+button,.btn{font:500 13px var(--body);padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:hover{border-color:var(--accent)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input,select,textarea{font:13px var(--body);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:100%}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.form .wide{grid-column:1/-1}
+.msg{padding:8px 12px;border-radius:6px;font-size:13px}
+.msg.bad{background:var(--bad-soft);color:var(--bad)}.msg.warn{background:var(--warn-soft);color:var(--warn)}.msg.good{background:var(--good-soft);color:var(--good)}.msg.info{background:var(--accent-soft);color:var(--accent)}
+.overlay{position:fixed;inset:0;background:rgba(10,20,30,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:20}
+.overlay.on{display:flex}
+.modal{background:var(--panel);border-radius:10px;max-width:960px;width:100%;padding:20px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.modal .head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.toast{position:fixed;right:16px;bottom:16px;z-index:30;max-width:360px}
+.muted{color:var(--muted)}.mono{font-family:var(--mono)}
+.timeline{border-left:2px solid var(--line);margin-left:6px;padding-left:14px;display:flex;flex-direction:column;gap:10px}
+.timeline div{position:relative}.timeline div::before{content:"";position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.chartbox{position:relative;height:260px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:500px){main{padding:12px}header,nav{padding-left:12px;padding-right:12px}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Pengelolaan Anggaran AI/AO</h1><div class="sub">UP2D Jawa Timur · Tahun anggaran 2026</div></div>
+  <div class="grow"></div>
+  <span id="mode" class="chip mute">Memuat</span>
+  <span id="who" class="muted"></span>
+  <button id="btnReload" type="button">Muat ulang</button>
+  <button id="btnSetting" type="button">Pengaturan</button>
+</header>
+<nav id="nav">
+  <a href="#dashboard">Dashboard</a><a href="#pagu">Pagu PRK</a><a href="#paket">Paket</a><a href="#kontrak">Kontrak dan amandemen</a>
+  <a href="#khs">KHS</a><a href="#material">Rencana material</a><a href="#progres">Progres fisik</a><a href="#bayar">Pembayaran</a>
+</nav>
+<main id="view"><div class="panel">Memuat data…</div></main>
+<div class="overlay" id="ov"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/* ===== Konfigurasi ===== */
+const DEMO_DATA = /*__DEMO_DATA__*/null;
+const TODAY = new Date().toISOString().slice(0,10);
+const UP3 = ['MDR','JMB','PNG','PSR','MDN','SBS','MJK','MLG','BJG','SBU','SDA','KDR','BWI','GSK','STB','SBB'];
+const UP3_NAMA = {MDR:'Madura',JMB:'Jember',PNG:'Ponorogo',PSR:'Pasuruan',MDN:'Madiun',SBS:'Surabaya Selatan',MJK:'Mojokerto',MLG:'Malang',BJG:'Bojonegoro',SBU:'Surabaya Utara',SDA:'Sidoarjo',KDR:'Kediri',BWI:'Banyuwangi',GSK:'Gresik',STB:'Situbondo',SBB:'Surabaya Barat'};
+const STATUS = ['Rencana','Menunggu SKKI','Persiapan','ND User','ND Manajer','Pengadaan','Terkontrak','Pelaksanaan','Siap tagih','Terbayar','Batal'];
+const PRE = STATUS.slice(0,6);
+const JALUR = ['Kontrak Rinci (KHS)','Pengadaan Langsung','Penunjukan Langsung','SMART SOSSYS','Repeat Order','Tender Terbuka'];
+const BIDANG = ['FASOP','HAR','REN','K3L'];
+const KAT = ['Jasa','Material','Peralatan'];
+const ALASAN_AMD = ['Rekomposisi pekerjaan','Tambah lokasi','Kurang lokasi','Kendala material','Kondisi lapangan','Perpanjangan waktu','Lainnya'];
+// PRK, sub PRK, pagu, dan KHS dibaca dari workbook dan diubah langsung di sheet sumbernya.
+const WRITE = {'Admin Ren':['PAKET','KONTRAK','AMANDEMEN','BOQ','PROGRES','BAYAR','PLOT_AKI','KATALOG','RENCANA_MATERIAL','DISPOSISI','PROGNOSA'],'PIC User':['PAKET','BOQ','DISPOSISI','KONTRAK','AMANDEMEN','PROGRES','PROGNOSA'],'Manajer':['DISPOSISI'],'Viewer':[]};
+const canWriteAny = sh => USER && (WRITE[USER.peran]||[]).includes(sh);
+let CFG = {api:'',token:''};
+try{ CFG = Object.assign(CFG, JSON.parse(localStorage.getItem('aiao_cfg')||'{}')); }catch(e){}
+let USER = null, D = null, C = null, chart = null;
+
+/* ===== Utilitas ===== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => { const n = Number(v); return isFinite(n) ? n : 0; };
+const rp = v => Math.round(num(v)).toLocaleString('id-ID');
+const M = v => (num(v)/1e9).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2})+' M';
+const pct = v => (num(v)*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
+const days = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5);
+const canWrite = sh => USER && (WRITE[USER.peran]||[]).includes(sh);
+function toast(text, kind){ const t=$('#toast'); t.innerHTML=`<div class="msg ${kind||'info'}" role="status">${esc(text)}</div>`; clearTimeout(t._h); t._h=setTimeout(()=>t.innerHTML='',4500); }
+function opt(list, val, blank){ return (blank?`<option value="">${esc(blank)}</option>`:'')+list.map(o=>{const v=typeof o==='object'?o.v:o, l=typeof o==='object'?o.l:o; return `<option value="${esc(v)}"${String(v)===String(val)?' selected':''}>${esc(l)}</option>`}).join(''); }
+
+/* ===== Data ===== */
+async function load(){
+  if(CFG.api){
+    try{
+      const r = await fetch(CFG.api+'?token='+encodeURIComponent(CFG.token));
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error);
+      D = j.data; USER = j.user;
+      $('#mode').className='chip good'; $('#mode').textContent='Terhubung ke workbook MONITORING SKKI';
+    }catch(e){
+      D = null; $('#mode').className='chip bad'; $('#mode').textContent='Gagal terhubung';
+      $('#view').innerHTML=`<div class="msg bad">Data tidak bisa dimuat: ${esc(e.message)}. Periksa URL API dan token di Pengaturan.</div>`; return;
+    }
+  } else if(DEMO_DATA){
+    D = JSON.parse(JSON.stringify(DEMO_DATA)); USER = {nama:'Mode demo',peran:'Admin Ren',email:''};
+    $('#mode').className='chip warn'; $('#mode').textContent='Mode demo: perubahan tidak tersimpan';
+  } else {
+    $('#mode').className='chip bad'; $('#mode').textContent='Belum terhubung';
+    $('#view').innerHTML='<div class="msg info">Isi URL API Apps Script dan token Anda di Pengaturan untuk memuat data.</div>'; settings(); return;
+  }
+  ['PRK','SUB_PRK','PAGU_VERSI','PLOT_AKI','KATALOG','RENCANA_MATERIAL','KHS','PAKET','BOQ','DISPOSISI','KONTRAK','AMANDEMEN','PROGRES','BAYAR','PROGNOSA'].forEach(k=>D[k]=D[k]||[]);
+  $('#who').textContent = USER.nama+' · '+USER.peran;
+  calc(); route();
+}
+const KEY = {PRK:'id_prk',SUB_PRK:'id_sub',PAGU_VERSI:'id_versi',KATALOG:'id_item',RENCANA_MATERIAL:'id_rm',KHS:'id_khs',PAKET:'id_paket',BOQ:'id_boq',DISPOSISI:'id_disposisi',KONTRAK:'id_kontrak',AMANDEMEN:'id_amd',PROGRES:'id_progres',BAYAR:'id_bayar'};
+const PFX = {PRK:'PRK',SUB_PRK:'SUB',PAGU_VERSI:'PV',KATALOG:'ITM',RENCANA_MATERIAL:'RM',KHS:'KHS',PAKET:'PKT',BOQ:'BOQ',DISPOSISI:'DSP',KONTRAK:'KTR',AMANDEMEN:'AMD',PROGRES:'PRG',BAYAR:'BYR'};
+function localId(sh){ let m=0; D[sh].forEach(r=>{const x=String(r[KEY[sh]]||'').match(/(\d+)$/); if(x) m=Math.max(m,+x[1]);}); return PFX[sh]+'-'+String(m+1).padStart(3,'0'); }
+async function save(sh, rec){
+  if(!canWrite(sh)){ toast('Peran Anda tidak boleh mengubah data ini.','bad'); return null; }
+  let out = rec;
+  if(CFG.api){
+    try{
+      const r = await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:CFG.token,action:'upsert',sheet:sh,record:rec})});
+      const j = await r.json(); if(!j.ok){ toast(j.error,'bad'); return null; } out = j.record;
+    }catch(e){ toast('Gagal menyimpan: '+e.message,'bad'); return null; }
+  } else if(KEY[sh] && !rec[KEY[sh]]) out = Object.assign({},rec,{[KEY[sh]]:localId(sh)});
+  const k = KEY[sh];
+  const i = k ? D[sh].findIndex(r=>r[k]===out[k]) : sh==='PLOT_AKI' ? D[sh].findIndex(r=>r.id_prk===out.id_prk&&num(r.bulan)===num(out.bulan)) : -1;
+  if(i>=0) D[sh][i]=Object.assign({},D[sh][i],out); else D[sh].push(out);
+  calc(); toast(CFG.api?'Tersimpan':'Tersimpan di mode demo (tidak masuk spreadsheet)','good');
+  return out;
+}
+
+/* ===== Perhitungan ===== */
+function calc(){
+  const amd = {}; D.AMANDEMEN.forEach(a=>{ if(a.status==='Rencana') return; (amd[a.id_ref]=amd[a.id_ref]||[]).push(a); });
+  const delta = id => (amd[id]||[]).reduce((s,a)=>s+num(a.nilai_sesudah)-num(a.nilai_sebelum),0);
+  const paket = Object.fromEntries(D.PAKET.map(p=>[p.id_paket,p]));
+  const kontrak = D.KONTRAK.map(k=>({...k, amd:delta(k.id_kontrak), berlaku:num(k.nilai_awal)+delta(k.id_kontrak), paket:paket[k.id_paket]||{}}));
+  const kById = Object.fromEntries(kontrak.map(k=>[k.id_kontrak,k]));
+  const bayarK = {}; D.BAYAR.forEach(b=>bayarK[b.id_kontrak]=(bayarK[b.id_kontrak]||0)+num(b.nilai));
+  kontrak.forEach(k=>{ k.bayar=bayarK[k.id_kontrak]||0; k.fisik=fisik(k); });
+  const sub = D.SUB_PRK.map(s=>{
+    const ks = kontrak.filter(k=>k.id_sub===s.id_sub || (!k.id_sub && k.paket.id_sub===s.id_sub));
+    const proses = D.PAKET.filter(p=>p.id_sub===s.id_sub && PRE.includes(p.status)).reduce((t,p)=>t+num(p.rab),0);
+    const kon = ks.reduce((t,k)=>t+k.berlaku,0), byr = ks.reduce((t,k)=>t+k.bayar,0);
+    return {...s, ai:num(s.ai_rencana), kontrak:kon, proses, sisa:num(s.ai_rencana)-kon-proses, bayar:byr, serapan:num(s.ai_rencana)?kon/num(s.ai_rencana):0};
+  });
+  const prk = D.PRK.map(p=>{
+    const ss = sub.filter(s=>s.id_prk===p.id_prk);
+    const sum = f => ss.reduce((t,s)=>t+s[f],0);
+    const aki = D.PLOT_AKI.filter(a=>a.id_prk===p.id_prk).reduce((t,a)=>t+num(a.nilai),0) || num(p.aki);
+    return {...p, subs:ss, ai:num(p.ai_terbit), rencana:sum('ai'), kontrak:sum('kontrak'), proses:sum('proses'), sisa:num(p.ai_terbit)-sum('kontrak')-sum('proses'), bayar:sum('bayar'), akiTotal:aki};
+  });
+  const khs = D.KHS.map(h=>{
+    const d = delta(h.id_khs), last=(amd[h.id_khs]||[]).slice(-1)[0];
+    const akhir = last && last.akhir_sesudah ? last.akhir_sesudah : h.akhir;
+    const terpakai = kontrak.filter(k=>k.id_khs===h.id_khs).reduce((t,k)=>t+k.berlaku,0);
+    const berlaku = num(h.nilai_awal)+d;
+    return {...h, amd:d, berlaku, akhirBerlaku:akhir, terpakai, sisa:berlaku-terpakai, hidup: akhir ? akhir>=TODAY : true, sisaHari: akhir?days(TODAY,akhir):null};
+  });
+  C = {kontrak, kById, sub, prk, khs, amd, paket};
+  C.tot = ['ai','kontrak','proses','sisa','bayar','akiTotal'].reduce((o,f)=>(o[f]=prk.reduce((t,p)=>t+num(p[f]),0),o),{});
+  C.flags = flags();
+}
+function fisik(k){
+  const boq = D.BOQ.filter(b=>b.id_paket===k.id_paket);
+  if(!boq.length) return null;
+  let tgt=0, done=0;
+  boq.forEach(b=>{
+    const h = num(b.harga)||num((D.KATALOG.find(i=>i.id_item===b.id_item)||{}).harga_satuan);
+    const v = Math.max(0,...D.PROGRES.filter(p=>p.id_kontrak===k.id_kontrak&&p.id_item===b.id_item&&p.up3===b.up3).map(p=>num(p.vol_terpasang)));
+    tgt += num(b.volume)*h; done += Math.min(v,num(b.volume))*h;
+  });
+  return tgt ? done/tgt : 0;
+}
+function flags(){
+  const f=[];
+  C.sub.filter(s=>s.sisa<0).forEach(s=>f.push({lv:'bad',t:'Perlu rekomposisi',d:`${s.uraian}: melebihi AI Rencana sebesar Rp ${rp(-s.sisa)}`,go:'#pagu'}));
+  C.khs.filter(h=>h.hidup && h.sisa>1 && h.sisaHari!==null && h.sisaHari<=60).forEach(h=>f.push({lv:'warn',t:'KHS segera berakhir',d:`${h.uraian} (${h.pemenang}): sisa kuota Rp ${rp(h.sisa)}, berakhir ${h.akhirBerlaku}`,go:'#khs'}));
+  D.PAKET.filter(p=>p.tgl_pr && p.tgl_nd_man && p.tgl_pr<p.tgl_nd_man).forEach(p=>f.push({lv:'warn',t:'Urutan tanggal',d:`${p.id_paket} ${(p.nama_paket||'').slice(0,60)}: PR (${p.tgl_pr}) sebelum ND Manajer (${p.tgl_nd_man})`,go:'#paket'}));
+  C.kontrak.filter(k=>k.akhir && k.akhir<TODAY && !k.tgl_bast).forEach(k=>f.push({lv:'warn',t:'BAST belum diinput',d:`${k.no_kontrak||k.id_kontrak} (${k.vendor}): kontrak berakhir ${k.akhir}`,go:'#kontrak'}));
+  D.PAKET.filter(p=>PRE.includes(p.status)).forEach(p=>{ const a=p.tgl_nd_user?days(p.tgl_nd_user,TODAY):null; if(a!==null&&a>30) f.push({lv:'warn',t:'Proses lama',d:`${p.id_paket} ${(p.nama_paket||'').slice(0,60)}: ${a} hari sejak ND User, status ${p.status}`,go:'#paket'}); });
+  return f;
+}
+
+/* ===== Routing ===== */
+const VIEWS = {dashboard:vDash, pagu:vPagu, paket:vPaket, kontrak:vKontrak, khs:vKhs, material:vMaterial, progres:vProgres, bayar:vBayar};
+function route(){
+  if(!D) return;
+  const h = (location.hash||'#dashboard').slice(1); const v = VIEWS[h]?h:'dashboard';
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+v));
+  if(chart){ chart.destroy(); chart=null; }
+  VIEWS[v]();
+}
+window.addEventListener('hashchange',route);
+
+/* ===== Modal dan form ===== */
+function modal(html){ $('#modal').innerHTML=html; $('#ov').classList.add('on'); const f=$('#modal').querySelector('input,select,textarea,button'); if(f) f.focus(); }
+function close_(){ $('#ov').classList.remove('on'); }
+$('#ov').addEventListener('click',e=>{ if(e.target.id==='ov') close_(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') close_(); });
+function form(title, fields, rec, onSave, note){
+  rec = rec||{};
+  const inp = f => {
+    const v = rec[f.k]!==undefined?rec[f.k]:(f.def!==undefined?f.def:'');
+    const id='f_'+f.k;
+    let el;
+    if(f.type==='select') el=`<select id="${id}">${opt(f.options,v,f.blank)}</select>`;
+    else if(f.type==='textarea') el=`<textarea id="${id}" rows="2">${esc(v)}</textarea>`;
+    else el=`<input id="${id}" type="${f.type||'text'}" value="${esc(v)}"${f.type==='number'?' step="any" min="0"':''}${f.ro?' readonly':''}>`;
+    return `<label class="${f.wide?'wide':''}" for="${id}">${esc(f.label)}${f.req?' *':''}${el}</label>`;
+  };
+  modal(`<div class="head"><h2>${esc(title)}</h2><button type="button" onclick="close_()" aria-label="Tutup">Tutup</button></div>
+    ${note?`<div class="msg info">${note}</div>`:''}
+    <form id="frm" class="form" novalidate>${fields.map(inp).join('')}<div class="wide" id="ferr"></div>
+    <div class="wide row"><button class="primary" type="submit">Simpan</button><button type="button" onclick="close_()">Batal</button></div></form>`);
+  $('#frm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const out = {...rec};
+    for(const f of fields){ let v=$('#f_'+f.k).value.trim(); if(f.type==='number') v = v===''?'':Number(v); out[f.k]=v; }
+    const miss = fields.filter(f=>f.req && (out[f.k]===''||out[f.k]===undefined)).map(f=>f.label);
+    if(miss.length){ $('#ferr').innerHTML=`<div class="msg bad">Lengkapi: ${esc(miss.join(', '))}.</div>`; return; }
+    const warn = onSave.check ? onSave.check(out) : null;
+    if(warn && !out._ok){ $('#ferr').innerHTML=`<div class="msg warn">${warn}</div>`; out._ok=true; rec._ok=true; return; }
+    delete out._ok; const r = await onSave(out); if(r!==false) close_();
+  });
+  $('#frm').addEventListener('input',()=>{ $('#ferr').innerHTML=''; rec._ok=false; });
+}
+
+/* ===== Tampilan: Dashboard ===== */
+function vDash(){
+  const t=C.tot, cnt=s=>D.PAKET.filter(p=>p.status===s).length;
+  $('#view').innerHTML=`
+  <div class="row"><h2>Serapan anggaran per ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</h2></div>
+  <div class="tiles">
+    <div class="tile"><div class="l">AI Terbit (SKKI)</div><div class="v">${M(t.ai)}</div><div class="n">${C.prk.length} PRK, ${C.sub.length} sub PRK</div></div>
+    <div class="tile"><div class="l">Terkontrak</div><div class="v">${M(t.kontrak)}</div><div class="n">${pct(t.ai?t.kontrak/t.ai:0)} dari AI Terbit · ${C.kontrak.length} kontrak</div></div>
+    <div class="tile"><div class="l">Dalam proses</div><div class="v">${M(t.proses)}</div><div class="n">${D.PAKET.filter(p=>PRE.includes(p.status)).length} paket belum terkontrak</div></div>
+    <div class="tile"><div class="l">Sisa bebas</div><div class="v" style="color:${t.sisa<0?'var(--bad)':'inherit'}">${M(t.sisa)}</div><div class="n">AI Terbit − terkontrak − proses</div></div>
+    <div class="tile"><div class="l">Terbayar</div><div class="v">${M(t.bayar)}</div><div class="n">${t.akiTotal?pct(t.bayar/t.akiTotal)+' dari AKI':'AKI per PRK belum diisi'}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h3>Komposisi pagu per PRK (Rp miliar)</h3><div class="chartbox"><canvas id="ch"></canvas></div></div>
+    <div class="panel"><h3>Perlu perhatian <span class="chip ${C.flags.length?'warn':'good'}">${C.flags.length}</span></h3>
+      <div style="max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px">${C.flags.length?C.flags.map(f=>`<a href="${f.go}" class="msg ${f.lv}" style="text-decoration:none;display:block"><b>${esc(f.t)}</b> · ${esc(f.d)}</a>`).join(''):'<div class="msg good">Tidak ada catatan.</div>'}</div></div>
+  </div>
+  <div class="panel scroll"><h3>Ringkasan per PRK</h3>
+    <table><thead><tr><th>No PRK</th><th>Uraian</th><th>Status</th><th class="n">AI Terbit</th><th class="n">Terkontrak</th><th class="n">Dalam proses</th><th class="n">Sisa bebas</th><th>Serapan</th><th class="n">Terbayar</th></tr></thead><tbody>
+    ${C.prk.map(p=>`<tr class="click" onclick="location.hash='#pagu'"><td class="mono">${esc(p.no_prk)}</td><td>${esc(p.uraian)}</td><td><span class="chip ${p.status_skki==='SKKI Terbit'?'good':'warn'}">${esc(p.status_skki||'-')}</span></td>
+      <td class="n">${rp(p.ai)}</td><td class="n">${rp(p.kontrak)}</td><td class="n">${rp(p.proses)}</td><td class="n" style="color:${p.sisa<0?'var(--bad)':'inherit'}">${rp(p.sisa)}</td>
+      <td>${meter(p.ai?p.kontrak/p.ai:0)}</td><td class="n">${rp(p.bayar)}</td></tr>`).join('')}
+    <tr class="tot"><td></td><td>Total</td><td></td><td class="n">${rp(t.ai)}</td><td class="n">${rp(t.kontrak)}</td><td class="n">${rp(t.proses)}</td><td class="n">${rp(t.sisa)}</td><td>${meter(t.ai?t.kontrak/t.ai:0)}</td><td class="n">${rp(t.bayar)}</td></tr></tbody></table></div>
+  <div class="panel"><h3>Jumlah paket per status</h3><div class="row">${STATUS.map(s=>`<span class="chip ${cnt(s)?'':'mute'}">${s}: ${cnt(s)}</span>`).join('')}</div></div>`;
+  const css=getComputedStyle(document.documentElement), col=v=>css.getPropertyValue(v).trim();
+  const ps=C.prk.filter(p=>p.ai>0);
+  if(!window.Chart){ $('#ch').parentNode.innerHTML='<div class="muted">Grafik tidak bisa dimuat (pustaka grafik tidak tersedia).</div>'; return; }
+  chart=new Chart($('#ch'),{type:'bar',data:{labels:ps.map(p=>p.no_prk.replace('2026.DJBT.','')+' '+p.uraian.split(' ').slice(0,2).join(' ')),
+    datasets:[{label:'Terkontrak',data:ps.map(p=>p.kontrak/1e9),backgroundColor:col('--bar1')},{label:'Dalam proses',data:ps.map(p=>p.proses/1e9),backgroundColor:col('--bar2')},{label:'Sisa bebas',data:ps.map(p=>Math.max(0,p.sisa)/1e9),backgroundColor:col('--bar3')}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,animation:false,scales:{x:{stacked:true,grid:{color:col('--line')},ticks:{color:col('--muted')}},y:{stacked:true,grid:{display:false},ticks:{color:col('--ink')}}},
+    plugins:{legend:{labels:{color:col('--ink'),boxWidth:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': Rp '+c.parsed.x.toLocaleString('id-ID',{maximumFractionDigits:2})+' M'}}}}});
+}
+function meter(v){ return `<div class="row" style="gap:6px;flex-wrap:nowrap"><div class="meter" style="flex:1"><i class="${v>1?'over':''}" style="width:${Math.min(100,v*100)}%"></i></div><span class="mono" style="font-size:12px;color:${v>1?'var(--bad)':'inherit'}">${pct(v)}</span></div>`; }
+
+/* ===== Tampilan: Pagu ===== */
+function vPagu(){
+  $('#view').innerHTML=`<div class="row"><h2>Pagu PRK dan sub PRK</h2><div class="grow"></div>${canWrite('SUB_PRK')?'<button type="button" onclick="editSub()">Tambah sub PRK</button>':''}</div>
+  <div class="msg info">AI Terbit dan AI Rencana dibaca dari sheet REKAP RINCIAN. Ubah nilainya di sheet tersebut (atau RENCANA ALL); setiap perubahan tercatat otomatis di Riwayat. Sisa bebas negatif ditandai merah sebagai perlu rekomposisi.</div>
+  ${C.prk.map(p=>`<div class="panel scroll"><div class="row"><h3 style="margin:0">${esc(p.no_prk)} · ${esc(p.uraian)}</h3><span class="chip ${p.status_skki==='SKKI Terbit'?'good':'warn'}">${esc(p.status_skki||'-')}</span><div class="grow"></div>
+    <span class="muted">AI Terbit <b class="mono">${rp(p.ai)}</b> · AKI <b class="mono">${p.akiTotal?rp(p.akiTotal):'belum diisi'}</b></span>${canWrite('PRK')?`<button type="button" onclick="editPrk('${p.id_prk}')">Ubah PRK</button>`:''}</div>
+    <table style="margin-top:8px"><thead><tr><th>Sub PRK</th><th class="n">AI Rencana</th><th class="n">Terkontrak</th><th class="n">Dalam proses</th><th class="n">Sisa bebas</th><th style="width:160px">Serapan kontrak</th><th>Status</th><th></th></tr></thead><tbody>
+    ${p.subs.map(s=>`<tr><td>${esc(s.uraian)}${s.catatan?`<div class="muted" style="font-size:12px">${esc(s.catatan)}</div>`:''}</td><td class="n">${rp(s.ai)}</td><td class="n">${rp(s.kontrak)}</td><td class="n">${rp(s.proses)}</td>
+      <td class="n" style="color:${s.sisa<0?'var(--bad)':'inherit'}">${rp(s.sisa)}</td><td>${meter(s.serapan)}</td><td>${s.sisa<0?'<span class="chip bad">Perlu rekomposisi</span>':s.ai&&s.sisa<s.ai*0.05?'<span class="chip good">Hampir habis</span>':''}</td>
+      <td class="row" style="flex-wrap:nowrap">${canWrite('SUB_PRK')?`<button type="button" onclick="editPagu('${s.id_sub}')">Ubah pagu</button>`:''}<button type="button" onclick="riwayat('${s.id_sub}')">Riwayat</button></td></tr>`).join('')}
+    </tbody></table></div>`).join('')}`;
+}
+function editPagu(id){
+  const s=D.SUB_PRK.find(x=>x.id_sub===id);
+  form('Ubah AI Rencana: '+s.uraian,[{k:'nilai_baru',label:'AI Rencana baru (Rp)',type:'number',req:1,def:s.ai_rencana},{k:'alasan',label:'Alasan perubahan',type:'select',options:['Revisi LKAI','Rekomposisi','SKKI terbit','Koreksi data','Lainnya'],req:1},{k:'catatan',label:'Catatan',type:'textarea',wide:1}],{},
+  async o=>{ const v=await save('PAGU_VERSI',{objek:'SUB',id_ref:id,jenis_nilai:'AI Rencana',nilai_lama:num(s.ai_rencana),nilai_baru:o.nilai_baru,alasan:o.alasan+(o.catatan?': '+o.catatan:''),tanggal:TODAY,oleh:USER.email||USER.nama});
+    if(!v) return false; await save('SUB_PRK',{...s,ai_rencana:o.nilai_baru}); route(); }, `Nilai sekarang Rp ${rp(s.ai_rencana)}.`);
+}
+function editSub(){
+  form('Tambah sub PRK',[{k:'id_prk',label:'PRK',type:'select',options:D.PRK.map(p=>({v:p.id_prk,l:p.no_prk+' '+p.uraian})),req:1},{k:'uraian',label:'Uraian sub PRK',req:1,wide:1},{k:'ai_rencana',label:'AI Rencana (Rp)',type:'number',req:1},{k:'catatan',label:'Catatan',wide:1}],{},
+  async o=>{ o.no_prk=D.PRK.find(p=>p.id_prk===o.id_prk).no_prk; const r=await save('SUB_PRK',o); if(!r) return false;
+    await save('PAGU_VERSI',{objek:'SUB',id_ref:r.id_sub,jenis_nilai:'AI Rencana',nilai_lama:0,nilai_baru:o.ai_rencana,alasan:'Sub PRK baru',tanggal:TODAY,oleh:USER.email||USER.nama}); route(); });
+}
+function editPrk(id){
+  const p=D.PRK.find(x=>x.id_prk===id);
+  form('Ubah PRK '+p.no_prk,[{k:'status_skki',label:'Status SKKI',type:'select',options:['Menunggu SKKI','SKKI Terbit']},{k:'ai_terbit',label:'AI Terbit / SKKI (Rp)',type:'number'},{k:'aki',label:'AKI total (Rp)',type:'number'},{k:'catatan',label:'Catatan',wide:1}],p,
+  async o=>{ if(num(o.ai_terbit)!==num(p.ai_terbit)) await save('PAGU_VERSI',{objek:'PRK',id_ref:id,jenis_nilai:'AI Terbit',nilai_lama:num(p.ai_terbit),nilai_baru:o.ai_terbit,alasan:'Perubahan SKKI',tanggal:TODAY,oleh:USER.email||USER.nama});
+    const r=await save('PRK',o); if(!r) return false; route(); });
+}
+function riwayat(id){
+  const v=D.PAGU_VERSI.filter(x=>x.id_ref===id).sort((a,b)=>String(b.tanggal).localeCompare(a.tanggal));
+  modal(`<div class="head"><h2>Riwayat pagu</h2><button type="button" onclick="close_()">Tutup</button></div>
+  <table><thead><tr><th>Tanggal</th><th>Jenis</th><th class="n">Nilai lama</th><th class="n">Nilai baru</th><th>Alasan</th><th>Oleh</th></tr></thead><tbody>
+  ${v.map(x=>`<tr><td>${esc(x.tanggal)}</td><td>${esc(x.jenis_nilai)}</td><td class="n">${rp(x.nilai_lama)}</td><td class="n">${rp(x.nilai_baru)}</td><td>${esc(x.alasan)}</td><td>${esc(x.oleh)}</td></tr>`).join('')||'<tr><td colspan="6">Belum ada riwayat.</td></tr>'}</tbody></table>`);
+}
+
+/* ===== Tampilan: Paket ===== */
+let PF={prk:'',status:'',bidang:'',q:''};
+function vPaket(){
+  const subName=id=>(D.SUB_PRK.find(s=>s.id_sub===id)||{}).uraian||'';
+  const rows=D.PAKET.filter(p=>(!PF.prk||p.no_prk===PF.prk)&&(!PF.status||p.status===PF.status)&&(!PF.bidang||p.bidang===PF.bidang)&&(!PF.q||(p.nama_paket+' '+p.id_paket).toLowerCase().includes(PF.q.toLowerCase())));
+  const tot=rows.reduce((t,p)=>t+num(p.rab),0);
+  $('#view').innerHTML=`<div class="row"><h2>Paket pekerjaan</h2><div class="grow"></div>${canWrite('PAKET')?'<button class="primary" type="button" onclick="editPaket()">Tambah paket</button>':''}</div>
+  <div class="panel filters">
+    <label for="fp">PRK<select id="fp">${opt(D.PRK.map(p=>({v:p.no_prk,l:p.no_prk})),PF.prk,'Semua PRK')}</select></label>
+    <label for="fs">Status<select id="fs">${opt(STATUS,PF.status,'Semua status')}</select></label>
+    <label for="fb">Bidang<select id="fb">${opt(BIDANG,PF.bidang,'Semua bidang')}</select></label>
+    <label for="fq">Cari<input id="fq" value="${esc(PF.q)}" placeholder="RTU keypoint"></label></div>
+  <div class="panel scroll"><div class="muted" style="margin-bottom:6px">${rows.length} paket · RAB/nilai Rp ${rp(tot)}</div>
+  <table><thead><tr><th>ID</th><th>Paket</th><th>Sub PRK</th><th>Bidang</th><th>Jalur</th><th>Status</th><th class="n">RAB / HPE</th><th class="n">Nilai kontrak berlaku</th><th>ND User</th></tr></thead><tbody>
+  ${rows.map(p=>{const ks=C.kontrak.filter(k=>k.id_paket===p.id_paket);return `<tr class="click" onclick="detailPaket('${p.id_paket}')"><td class="mono">${p.id_paket}</td><td>${esc(p.nama_paket)}</td><td class="muted">${esc(subName(p.id_sub))}</td><td>${esc(p.bidang)}</td><td>${esc(p.jalur)}</td>
+    <td>${chipStatus(p.status)}</td><td class="n">${rp(p.rab)}</td><td class="n">${ks.length?rp(ks.reduce((t,k)=>t+k.berlaku,0)):'-'}</td><td class="mono" style="font-size:12px">${esc(p.tgl_nd_user||'-')}</td></tr>`}).join('')}</tbody></table></div>`;
+  [['fp','prk'],['fs','status'],['fb','bidang']].forEach(([i,k])=>$('#'+i).addEventListener('change',e=>{PF[k]=e.target.value;vPaket();}));
+  $('#fq').addEventListener('change',e=>{PF.q=e.target.value;vPaket();});
+}
+function chipStatus(s){ const c=PRE.includes(s)?'warn':s==='Batal'?'mute':'good'; return `<span class="chip ${c}">${esc(s)}</span>`; }
+function subOpts(){ return C.sub.map(s=>({v:s.id_sub,l:`${s.no_prk.replace('2026.DJBT.','')} · ${s.uraian} (sisa Rp ${rp(s.sisa)})`})); }
+function editPaket(id){
+  const p=id?D.PAKET.find(x=>x.id_paket===id):{status:'Rencana',jalur:JALUR[0]};
+  const f=[{k:'id_sub',label:'Sub PRK',type:'select',options:subOpts(),req:1,wide:1},{k:'nama_paket',label:'Nama pekerjaan (harus sama persis dengan uraian di Mon Pengadaan)',req:1,wide:1},{k:'bidang',label:'Bidang',type:'select',options:BIDANG,blank:'-'},{k:'pic',label:'PIC'},
+    {k:'jalur',label:'Jalur pengadaan',type:'select',options:JALUR,req:1},{k:'jenis_kontrak',label:'Jenis kontrak (kolom F TERKONTRAK)',type:'select',options:['KR','PENGADAAN','LUMPSUM'],req:1},{k:'kategori',label:'Kategori',type:'select',options:KAT,blank:'-'},{k:'rab',label:'RAB / HPE (Rp)',type:'number',req:1},{k:'status',label:'Status',type:'select',options:STATUS,req:1},
+    {k:'target_nd',label:'Target ND',type:'date'},{k:'target_terbit',label:'Target terbit',type:'date'},{k:'target_bast',label:'Target BAST',type:'date'},
+    {k:'no_nd_user',label:'No ND User'},{k:'tgl_nd_user',label:'Tgl ND User',type:'date'},{k:'no_nd_man',label:'No ND Manajer'},{k:'tgl_nd_man',label:'Tgl ND Manajer',type:'date'},
+    {k:'no_pj_khs',label:'No penunjukan KHS (bila KR)'},{k:'no_pr',label:'No PR'},{k:'tgl_pr',label:'Tgl PR',type:'date'},{k:'catatan',label:'Catatan (wajib bila melebihi pagu)',type:'textarea',wide:1}];
+  const fn=async o=>{ o.no_prk=(D.SUB_PRK.find(s=>s.id_sub===o.id_sub)||{}).no_prk; const r=await save('PAKET',o); if(!r) return false; route(); };
+  fn.check=o=>{
+    const s=C.sub.find(x=>x.id_sub===o.id_sub); const before=id&&p.id_sub===o.id_sub&&PRE.includes(p.status)?num(p.rab):0;
+    const sisa=s?s.sisa+before:0;
+    if(PRE.includes(o.status) && num(o.rab)>sisa){ if(!o.catatan) return `RAB melebihi sisa bebas sub PRK (Rp ${rp(sisa)}). Isi catatan rekomposisi lalu klik Simpan lagi.`; return `RAB melebihi sisa bebas (Rp ${rp(sisa)}). Paket akan ditandai perlu rekomposisi. Klik Simpan lagi untuk melanjutkan.`; }
+    if(o.tgl_nd_user&&o.tgl_nd_man&&o.tgl_nd_user>o.tgl_nd_man) return 'Tanggal ND User setelah ND Manajer. Periksa lagi, atau klik Simpan untuk tetap menyimpan.';
+    return null; };
+  if(!p.jenis_kontrak) p.jenis_kontrak=(p.jalur||'').startsWith('Kontrak Rinci')?'KR':'PENGADAAN';
+  form(id?'Ubah paket '+id:'Tambah paket',f,p,fn,'Paket baru ditambahkan sebagai baris di sheet TERKONTRAK; kolom rumus disalin dari baris di atasnya. Status berubah menjadi Terkontrak otomatis begitu Laksda mengisi Mon Pengadaan dengan uraian yang sama.');
+}
+function detailPaket(id){
+  const p=D.PAKET.find(x=>x.id_paket===id), ks=C.kontrak.filter(k=>k.id_paket===id), boq=D.BOQ.filter(b=>b.id_paket===id);
+  const s=C.sub.find(x=>x.id_sub===p.id_sub)||{};
+  const item=i=>(D.KATALOG.find(x=>x.id_item===i)||{}).uraian||i;
+  modal(`<div class="head"><div><div class="muted mono">${p.id_paket} · ${esc(p.no_prk)}</div><h2>${esc(p.nama_paket)}</h2></div><button type="button" onclick="close_()">Tutup</button></div>
+  <div class="row">${chipStatus(p.status)}${p.baris?`<span class="chip mute">TERKONTRAK baris ${p.baris}</span>`:''}${p.cek_mon?`<span class="chip ${p.cek_mon==='OK'?'good':'warn'}">Mon Pengadaan: ${p.cek_mon}</span>`:''}<span class="chip mute">${esc(p.jalur)}</span><span class="chip mute">${esc(p.bidang||'-')}</span><span class="chip mute">${esc(s.uraian||'')}</span><div class="grow"></div>${canWrite('PAKET')?`<button type="button" onclick="editPaket('${id}')">Ubah paket</button>`:''}</div>
+  <table><tbody>
+   <tr><th>RAB / HPE</th><td class="n">${rp(p.rab)}</td><th>ND User</th><td>${esc(p.no_nd_user||'-')} · ${esc(p.tgl_nd_user||'')}</td></tr>
+   <tr><th>Sisa bebas sub PRK</th><td class="n">${rp(s.sisa)}</td><th>ND Manajer</th><td>${esc(p.no_nd_man||'-')} · ${esc(p.tgl_nd_man||'')}</td></tr>
+   <tr><th>Target terbit / BAST</th><td>${esc(p.target_terbit||'-')} / ${esc(p.target_bast||'-')}</td><th>PR / Pj KHS</th><td>${esc(p.no_pr||'-')} · ${esc(p.tgl_pr||'')} · ${esc(p.no_pj_khs||'')}</td></tr></tbody></table>
+  <div class="row"><h3 style="margin:0">Kontrak</h3><div class="grow"></div>${canWrite('KONTRAK')?`<button type="button" onclick="editKontrak(null,'${id}')">Tambah kontrak</button>`:''}</div>
+  ${ks.length?`<table><thead><tr><th>No kontrak</th><th>Vendor</th><th class="n">Nilai awal</th><th class="n">Amandemen</th><th class="n">Berlaku</th><th>Masa</th><th></th></tr></thead><tbody>${ks.map(k=>`<tr><td class="mono" style="font-size:12px">${esc(k.no_kontrak)}</td><td>${esc(k.vendor)}</td><td class="n">${rp(k.nilai_awal)}</td><td class="n">${k.amd?rp(k.amd):'-'}</td><td class="n">${rp(k.berlaku)}</td><td>${esc(k.awal)} s.d. ${esc(k.akhir)}</td><td>${canWrite('AMANDEMEN')?`<button type="button" onclick="editAmd('Kontrak','${k.id_kontrak}')">Catat amandemen</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="muted">Belum ada kontrak.</div>'}
+  <div class="row"><h3 style="margin:0">BoQ per UP3</h3><div class="grow"></div>${canWrite('BOQ')?`<button type="button" onclick="editBoq('${id}')">Tambah baris BoQ</button>`:''}</div>
+  ${boq.length?`<table><thead><tr><th>Item</th><th>UP3</th><th class="n">Volume</th><th class="n">Harga</th><th class="n">Nilai</th></tr></thead><tbody>${boq.map(b=>`<tr><td>${esc(item(b.id_item))}</td><td>${esc(b.up3)}</td><td class="n">${rp(b.volume)}</td><td class="n">${rp(b.harga)}</td><td class="n">${rp(num(b.volume)*num(b.harga))}</td></tr>`).join('')}</tbody></table>`:'<div class="muted">BoQ belum diisi. BoQ dibutuhkan untuk menghitung progres fisik terbobot.</div>'}`);
+}
+function editBoq(pid){
+  const p=D.PAKET.find(x=>x.id_paket===pid);
+  const rm=D.RENCANA_MATERIAL.filter(r=>r.id_sub===p.id_sub).map(r=>r.id_item);
+  const items=D.KATALOG.filter(i=>!rm.length||rm.includes(i.id_item)).map(i=>({v:i.id_item,l:`${i.uraian} (Rp ${rp(i.harga_satuan)})`}));
+  if(!items.length){ toast('Belum ada item di katalog atau rencana material sub PRK ini.','warn'); return; }
+  form('Tambah baris BoQ',[{k:'id_item',label:'Item (dari rencana material sub PRK)',type:'select',options:items,req:1,wide:1},{k:'up3',label:'UP3',type:'select',options:UP3.map(u=>({v:u,l:u+' '+UP3_NAMA[u]})),req:1},{k:'volume',label:'Volume',type:'number',req:1},{k:'harga',label:'Harga satuan kontrak (kosongkan = harga katalog)',type:'number'}],{},
+  async o=>{ o.id_paket=pid; if(o.harga==='') o.harga=num((D.KATALOG.find(i=>i.id_item===o.id_item)||{}).harga_satuan);
+    const rv=D.RENCANA_MATERIAL.find(r=>r.id_sub===p.id_sub&&r.id_item===o.id_item); const sudah=D.BOQ.filter(b=>b.id_item===o.id_item&&b.up3===o.up3&&D.PAKET.find(x=>x.id_paket===b.id_paket&&x.id_sub===p.id_sub)).reduce((t,b)=>t+num(b.volume),0);
+    if(rv && sudah+num(o.volume)>num(rv[o.up3])) toast(`Volume melebihi rencana material ${o.up3} (${rv[o.up3]}). Tetap disimpan, ditandai melebihi rencana.`,'warn');
+    const r=await save('BOQ',o); if(!r) return false; detailPaket(pid); });
+}
+
+/* ===== Tampilan: Kontrak dan amandemen ===== */
+let KQ='';
+function vKontrak(){
+  const rows=C.kontrak.filter(k=>!KQ||(k.no_kontrak+' '+k.vendor+' '+(k.paket.nama_paket||'')).toLowerCase().includes(KQ.toLowerCase()));
+  const amds=D.AMANDEMEN.slice().sort((a,b)=>String(b.tanggal).localeCompare(a.tanggal));
+  const ref=a=>a.objek==='KHS'?((C.khs.find(h=>h.id_khs===a.id_ref)||{}).uraian||a.id_ref)+' · '+((C.khs.find(h=>h.id_khs===a.id_ref)||{}).pemenang||''):((C.kById[a.id_ref]||{}).no_kontrak||a.id_ref)+' · '+((C.kById[a.id_ref]||{}).vendor||'');
+  $('#view').innerHTML=`<div class="row"><h2>Kontrak dan amandemen</h2><div class="grow"></div><label for="kq" style="min-width:260px">Cari<input id="kq" value="${esc(KQ)}" placeholder="vendor atau nomor kontrak"></label></div>
+  <div class="tiles"><div class="tile"><div class="l">Kontrak</div><div class="v">${C.kontrak.length}</div></div><div class="tile"><div class="l">Nilai berlaku</div><div class="v">${M(C.kontrak.reduce((t,k)=>t+k.berlaku,0))}</div></div>
+   <div class="tile"><div class="l">Amandemen tercatat</div><div class="v">${D.AMANDEMEN.length}</div><div class="n">${D.AMANDEMEN.filter(a=>a.objek==='KHS').length} KHS · ${D.AMANDEMEN.filter(a=>a.objek==='Kontrak').length} kontrak</div></div>
+   <div class="tile"><div class="l">Lewat masa, BAST belum ada</div><div class="v">${C.kontrak.filter(k=>k.akhir&&k.akhir<TODAY&&!k.tgl_bast).length}</div></div></div>
+  <div class="panel scroll"><table><thead><tr><th>No kontrak</th><th>Paket</th><th>Vendor</th><th class="n">Nilai awal</th><th class="n">Amandemen</th><th class="n">Berlaku</th><th>Masa</th><th>BAST</th><th>Fisik</th><th class="n">Terbayar</th><th></th></tr></thead><tbody>
+  ${rows.map(k=>`<tr><td class="mono" style="font-size:12px">${esc(k.no_kontrak||k.id_kontrak)}</td><td>${esc((k.paket.nama_paket||'').slice(0,80))}</td><td>${esc(k.vendor)}</td><td class="n">${rp(k.nilai_awal)}</td><td class="n">${k.amd?rp(k.amd):'-'}</td><td class="n">${rp(k.berlaku)}</td>
+   <td style="white-space:nowrap">${esc(k.awal||'')}<br>${esc(k.akhir||'')} ${k.akhir&&k.akhir<TODAY&&!k.tgl_bast?'<span class="chip warn">Lewat</span>':''}</td><td>${esc(k.tgl_bast||'-')}</td><td>${k.fisik===null?'<span class="muted">BoQ belum ada</span>':meter(k.fisik)}</td><td class="n">${rp(k.bayar)}</td>
+   <td class="row" style="flex-wrap:nowrap">${canWrite('AMANDEMEN')?`<button type="button" onclick="editAmd('Kontrak','${k.id_kontrak}')">Amandemen</button>`:''}${canWrite('KONTRAK')?`<button type="button" onclick="editKontrak('${k.id_kontrak}')">Ubah</button>`:''}</td></tr>`).join('')}</tbody></table></div>
+  <div class="panel"><h3>Catatan amandemen terbaru</h3>${amds.length?`<div class="timeline">${amds.map(a=>`<div><div class="row"><b>${esc(a.no_amd)}</b><span class="chip ${a.status==='Rencana'?'warn':'mute'}">${esc(a.objek)} · ${esc(a.status||'Terbit')}</span><span class="muted">${esc(a.tanggal)}</span></div>
+    <div>${esc(ref(a))}</div><div class="muted">${esc(a.jenis)}: Rp ${rp(a.nilai_sebelum)} → Rp ${rp(a.nilai_sesudah)} (${num(a.nilai_sesudah)-num(a.nilai_sebelum)>=0?'+':''}${rp(num(a.nilai_sesudah)-num(a.nilai_sebelum))})${a.akhir_sesudah&&a.akhir_sesudah!==a.akhir_sebelum?` · akhir ${esc(a.akhir_sebelum)} → ${esc(a.akhir_sesudah)}`:''}</div>
+    ${a.alasan||a.catatan?`<div>${esc(a.alasan)}${a.catatan?' · '+esc(a.catatan):''}</div>`:''}</div>`).join('')}</div>`:'<div class="muted">Belum ada amandemen.</div>'}</div>`;
+  $('#kq').addEventListener('change',e=>{KQ=e.target.value;vKontrak();});
+}
+function editKontrak(id,pid){
+  const k=id?D.KONTRAK.find(x=>x.id_kontrak===id):{id_paket:pid,skema_bayar:'100% saat BAST'};
+  const p=D.PAKET.find(x=>x.id_paket===(k.id_paket||pid));
+  form(id?'Ubah kontrak':'Tambah kontrak: '+(p.nama_paket||'').slice(0,60),[{k:'no_kontrak',label:'Nomor kontrak / SPK / KR',req:1,wide:1},{k:'vendor',label:'Vendor',req:1},{k:'nilai_awal',label:'Nilai kontrak awal (Rp)',type:'number',req:1,ro:k.sumber==='TERKONTRAK'},
+   {k:'id_khs',label:'KHS induk (bila KR)',type:'select',options:C.khs.map(h=>({v:h.id_khs,l:`${h.uraian.slice(0,50)} · ${h.pemenang} (sisa Rp ${rp(h.sisa)})`})),blank:'Bukan KR'},
+   {k:'awal',label:'Awal kontrak',type:'date',req:1},{k:'akhir',label:'Akhir kontrak',type:'date',req:1},{k:'no_po',label:'Nomor PO'},{k:'tgl_po',label:'Tanggal PO',type:'date'},
+   {k:'skema_bayar',label:'Skema bayar',type:'select',options:['100% saat BAST','Termin','Bulanan']},{k:'no_bast',label:'Nomor BAST'},{k:'tgl_bast',label:'Tanggal BAST',type:'date'}],k,
+  Object.assign(async o=>{ o.id_paket=p.id_paket; o.id_sub=p.id_sub; if(k.sumber==='TERKONTRAK') o.nilai_awal=k.nilai_awal; const r=await save('KONTRAK',o); if(!r) return false;
+    if(PRE.includes(p.status)) await save('PAKET',{...p,status:'Terkontrak'});
+    if(o.tgl_bast && !['Siap tagih','Terbayar'].includes(p.status)) await save('PAKET',{...p,status:'Siap tagih'}); route(); },
+   {check:o=>{ if(o.awal&&o.akhir&&o.awal>o.akhir) return 'Awal kontrak setelah akhir kontrak.'; const h=C.khs.find(x=>x.id_khs===o.id_khs); const before=id&&k.id_khs===o.id_khs?num(k.nilai_awal):0;
+     if(h&&num(o.nilai_awal)>h.sisa+before) return `Nilai KR melebihi sisa kuota KHS (Rp ${rp(h.sisa+before)}). Klik Simpan lagi untuk tetap menyimpan.`; if(h&&!h.hidup) return 'KHS induk sudah berakhir. Klik Simpan lagi untuk tetap menyimpan.'; return null; }}),
+   k.sumber==='TERKONTRAK'?'Nomor kontrak, vendor, nilai, masa, dan PO dibaca dari Mon Pengadaan dan TERKONTRAK. Isian di sini disimpan di tab APP_KONTRAK untuk melengkapi (BAST, skema bayar) atau mengoreksi sementara.':'Kontrak ini belum ada di Mon Pengadaan. Isian disimpan sementara di tab APP_KONTRAK sampai Laksda memperbaruinya.');
+}
+function editAmd(objek,id){
+  const base=objek==='KHS'?C.khs.find(h=>h.id_khs===id):C.kById[id];
+  const nilaiNow=base.berlaku, akhirNow=objek==='KHS'?base.akhirBerlaku:(((C.amd[id]||[]).slice(-1)[0]||{}).akhir_sesudah||base.akhir);
+  form(`Catat amandemen ${objek}: ${objek==='KHS'?base.uraian.slice(0,50)+' · '+base.pemenang:base.no_kontrak}`,[
+   {k:'no_amd',label:'Nomor amandemen',req:1,wide:1},{k:'tanggal',label:'Tanggal',type:'date',req:1,def:TODAY},{k:'status',label:'Status',type:'select',options:['Terbit','Rencana']},
+   {k:'jenis',label:'Jenis',type:'select',options:['Nilai','Waktu','Volume / lingkup','Nilai dan waktu','Nilai, waktu, dan volume'],req:1},
+   {k:'nilai_sebelum',label:'Nilai sebelum (Rp)',type:'number',def:nilaiNow,ro:1},{k:'nilai_sesudah',label:'Nilai sesudah (Rp)',type:'number',req:1,def:nilaiNow},
+   {k:'akhir_sebelum',label:'Akhir sebelum',type:'date',def:akhirNow,ro:1},{k:'akhir_sesudah',label:'Akhir sesudah',type:'date',def:akhirNow},
+   {k:'alasan',label:'Alasan',type:'select',options:ALASAN_AMD,req:1},{k:'sumber_anggaran',label:'Sumber anggaran selisih',type:'select',options:subOpts(),blank:'Sub PRK yang sama'},
+   {k:'catatan',label:'Catatan amandemen',type:'textarea',wide:1}],{},
+  async o=>{ o.objek=objek; o.id_ref=id; o.id_sub=objek==='Kontrak'?(base.id_sub||base.paket.id_sub):''; const r=await save('AMANDEMEN',o); if(!r) return false; route(); },
+  'Status Rencana dipakai untuk spare pagu amandemen; nilainya belum menambah nilai berlaku.');
+}
+
+/* ===== Tampilan: KHS ===== */
+function vKhs(){
+  const g={}; C.khs.forEach(h=>(g[h.no_khs]=g[h.no_khs]||[]).push(h));
+  $('#view').innerHTML=`<div class="row"><h2>KHS dan sisa kuota</h2><div class="grow"></div>${canWrite('KHS')?'<button type="button" onclick="editKhs()">Tambah pemenang KHS</button>':''}</div>
+  <div class="msg info">Data KHS dibaca dari sheet IMPORTRANGE KHS PENGADAAN. Sisa kuota = nilai KHS setelah amandemen dikurangi nilai KR yang sudah terbit. Amandemen yang dicatat di aplikasi disimpan di tab APP_AMANDEMEN.</div>
+  <div class="panel scroll"><table><thead><tr><th>KHS</th><th>Pemenang</th><th class="n">Nilai awal</th><th class="n">Amandemen</th><th class="n">Berlaku</th><th class="n">KR terbit</th><th class="n">Sisa kuota</th><th>Berakhir</th><th>Status</th><th></th></tr></thead><tbody>
+  ${Object.values(g).map(arr=>arr.map((h,i)=>`<tr>${i===0?`<td rowspan="${arr.length}"><div class="mono muted">${esc(h.no_khs)} · ${esc(h.bidang)}</div>${esc(h.uraian)}</td>`:''}<td>${esc(h.pemenang)}</td><td class="n">${rp(h.nilai_awal)}</td><td class="n">${h.amd?rp(h.amd):'-'}</td><td class="n">${rp(h.berlaku)}</td><td class="n">${rp(h.terpakai)}</td>
+   <td class="n" style="color:${h.sisa<0?'var(--bad)':'inherit'}">${rp(h.sisa)}</td><td style="white-space:nowrap">${esc(h.akhirBerlaku||'-')}</td>
+   <td>${h.hidup?(h.sisaHari!==null&&h.sisaHari<=60?`<span class="chip warn">Hidup, ${h.sisaHari} hari</span>`:'<span class="chip good">Hidup</span>'):'<span class="chip mute">Mati</span>'}</td>
+   <td>${canWrite('AMANDEMEN')?`<button type="button" onclick="editAmd('KHS','${h.id_khs}')">Amandemen</button>`:''}</td></tr>`).join('')).join('')}</tbody></table></div>`;
+}
+function editKhs(){
+  form('Tambah pemenang KHS',[{k:'no_khs',label:'No urut KHS (mis. 014)',req:1},{k:'uraian',label:'Uraian KHS',req:1,wide:1},{k:'bidang',label:'Bidang',type:'select',options:BIDANG},{k:'rks',label:'No RKS'},{k:'hpe',label:'HPE (Rp)',type:'number'},
+   {k:'urutan',label:'Urutan pemenang',type:'number',def:1},{k:'no_pj',label:'No penunjukan (Pj)',req:1},{k:'pemenang',label:'Pemenang',req:1},{k:'nilai_awal',label:'Nilai kontrak (Rp)',type:'number',req:1},{k:'awal',label:'Awal',type:'date'},{k:'akhir',label:'Akhir',type:'date'}],{},
+   async o=>{ o.id_khs=`KHS-${o.no_khs}-${o.urutan||1}`; const r=await save('KHS',o); if(!r) return false; route(); });
+}
+
+/* ===== Tampilan: Rencana material ===== */
+let MSUB='';
+function vMaterial(){
+  const subsWith=[...new Set(D.RENCANA_MATERIAL.map(r=>r.id_sub))];
+  if(!MSUB) MSUB=subsWith[0]||(D.SUB_PRK[0]||{}).id_sub;
+  const s=D.SUB_PRK.find(x=>x.id_sub===MSUB)||{};
+  const rows=D.RENCANA_MATERIAL.filter(r=>r.id_sub===MSUB);
+  const kat=id=>D.KATALOG.find(i=>i.id_item===id)||{};
+  const pk=D.PAKET.filter(p=>p.id_sub===MSUB).map(p=>p.id_paket);
+  const boqV=(it,u)=>D.BOQ.filter(b=>pk.includes(b.id_paket)&&b.id_item===it&&(!u||b.up3===u)).reduce((t,b)=>t+num(b.volume),0);
+  const kIds=C.kontrak.filter(k=>pk.includes(k.id_paket)).map(k=>k.id_kontrak);
+  const pasang=it=>{ let t=0; UP3.forEach(u=>{ kIds.forEach(k=>{ t+=Math.max(0,...D.PROGRES.filter(p=>p.id_kontrak===k&&p.id_item===it&&p.up3===u).map(p=>num(p.vol_terpasang))); }); }); return t; };
+  const tot=r=>UP3.reduce((t,u)=>t+num(r[u]),0);
+  const nilai=rows.reduce((t,r)=>t+tot(r)*num(kat(r.id_item).harga_satuan),0);
+  $('#view').innerHTML=`<div class="row"><h2>Rencana material per sub PRK</h2><div class="grow"></div>${canWrite('RENCANA_MATERIAL')?'<button class="primary" type="button" onclick="editRm()">Tambah item rencana</button>':''}</div>
+  <div class="panel filters"><label for="ms" class="wide">Sub PRK<select id="ms">${opt(D.SUB_PRK.map(x=>({v:x.id_sub,l:`${x.no_prk} · ${x.uraian}${subsWith.includes(x.id_sub)?'':' (belum ada rencana)'}`})),MSUB)}</select></label></div>
+  <div class="tiles"><div class="tile"><div class="l">Item direncanakan</div><div class="v">${rows.length}</div></div><div class="tile"><div class="l">Nilai rencana material (volume × harga katalog)</div><div class="v">${M(nilai)}</div><div class="n">AI Rencana sub PRK Rp ${rp(s.ai_rencana)}</div></div></div>
+  <div class="panel scroll">${rows.length?`<table><thead><tr><th>Item</th><th>Kategori</th><th class="n">Harga</th><th>Versi</th>${UP3.map(u=>`<th class="n" title="${UP3_NAMA[u]}">${u}</th>`).join('')}<th class="n">Rencana</th><th class="n">Di BoQ</th><th class="n">Terpasang</th><th></th></tr></thead><tbody>
+   ${rows.map(r=>{const t=tot(r),b=boqV(r.id_item),ps=pasang(r.id_item);return `<tr><td>${esc(r.uraian_item||kat(r.id_item).uraian)}</td><td><span class="chip mute">${esc(kat(r.id_item).kategori||'')}</span></td><td class="n">${rp(kat(r.id_item).harga_satuan)}</td><td class="muted" style="font-size:12px">${esc(r.versi)}</td>
+   ${UP3.map(u=>`<td class="n">${num(r[u])||''}</td>`).join('')}<td class="n"><b>${t}</b></td><td class="n" style="color:${b>t?'var(--bad)':'inherit'}">${b||'-'}</td><td class="n">${ps||'-'}</td>
+   <td>${canWrite('RENCANA_MATERIAL')?`<button type="button" onclick="editRm('${r.id_rm}')">Ubah</button>`:''}</td></tr>`}).join('')}</tbody></table>`:'<div class="muted">Belum ada rencana material untuk sub PRK ini. Klik Tambah item rencana.</div>'}</div>`;
+  $('#ms').addEventListener('change',e=>{MSUB=e.target.value;vMaterial();});
+}
+function editRm(id){
+  const r=id?D.RENCANA_MATERIAL.find(x=>x.id_rm===id):{id_sub:MSUB,versi:'LKAI'};
+  const f=[{k:'id_item',label:'Item katalog',type:'select',options:D.KATALOG.map(i=>({v:i.id_item,l:`${i.uraian} (Rp ${rp(i.harga_satuan)})`})),blank:'Item baru (isi di bawah)',wide:1},
+    {k:'item_baru',label:'Uraian item baru'},{k:'kategori_baru',label:'Kategori item baru',type:'select',options:['MDU','Non MDU + Jasa','Jasa']},{k:'satuan_baru',label:'Satuan',def:'unit'},{k:'harga_baru',label:'Harga satuan item baru (Rp)',type:'number'},
+    {k:'versi',label:'Versi',type:'select',options:['LKAI','Revisi 1','Revisi 2','Revisi 3','Revisi 1 + Revisi 2']}].concat(UP3.map(u=>({k:u,label:`${u} ${UP3_NAMA[u]}`,type:'number',def:0})));
+  form(id?'Ubah rencana material':'Tambah item rencana material',f,r,async o=>{
+    if(!o.id_item){ if(!o.item_baru){ toast('Pilih item katalog atau isi uraian item baru.','bad'); return false; }
+      const it=await save('KATALOG',{uraian:o.item_baru,kategori:o.kategori_baru,satuan:o.satuan_baru,harga_satuan:o.harga_baru||0}); if(!it) return false; o.id_item=it.id_item; }
+    const rec={id_rm:o.id_rm,id_sub:MSUB,id_item:o.id_item,uraian_item:(D.KATALOG.find(i=>i.id_item===o.id_item)||{}).uraian,versi:o.versi}; UP3.forEach(u=>rec[u]=num(o[u]));
+    const s=await save('RENCANA_MATERIAL',rec); if(!s) return false; route(); });
+}
+
+/* ===== Tampilan: Progres fisik ===== */
+let PK='';
+function vProgres(){
+  const withBoq=C.kontrak.filter(k=>D.BOQ.some(b=>b.id_paket===k.id_paket));
+  if(!PK) PK=(withBoq[0]||C.kontrak[0]||{}).id_kontrak||'';
+  const k=C.kById[PK]; const boq=k?D.BOQ.filter(b=>b.id_paket===k.id_paket):[];
+  const item=i=>(D.KATALOG.find(x=>x.id_item===i)||{}).uraian||i;
+  const last=(b)=>{ const ps=D.PROGRES.filter(p=>p.id_kontrak===PK&&p.id_item===b.id_item&&p.up3===b.up3).sort((a,c)=>num(c.bulan)-num(a.bulan)); return ps[0]; };
+  const bln=new Date().getMonth()+1;
+  $('#view').innerHTML=`<div class="row"><h2>Progres fisik per UP3</h2></div>
+  <div class="msg info">Isi volume terpasang kumulatif per item per UP3 setiap bulan. Persen fisik dihitung terbobot nilai item dari BoQ. Status kedatangan material MDU dicatat oleh PIC di kolom catatan.</div>
+  <div class="panel filters"><label for="pk" class="wide">Kontrak<select id="pk">${opt(C.kontrak.map(x=>({v:x.id_kontrak,l:`${D.BOQ.some(b=>b.id_paket===x.id_paket)?'':'(BoQ belum ada) '}${x.no_kontrak} · ${x.vendor} · ${(x.paket.nama_paket||'').slice(0,50)}`})),PK)}</select></label></div>
+  ${k?`<div class="tiles"><div class="tile"><div class="l">Fisik terbobot</div><div class="v">${k.fisik===null?'-':pct(k.fisik)}</div></div><div class="tile"><div class="l">Nilai berlaku</div><div class="v">${M(k.berlaku)}</div></div><div class="tile"><div class="l">Masa kontrak</div><div class="v" style="font-size:16px">${esc(k.awal)} s.d. ${esc(k.akhir)}</div></div></div>
+  <div class="panel scroll">${boq.length?`<table><thead><tr><th>Item</th><th>UP3</th><th class="n">Volume BoQ</th><th class="n">Terpasang terakhir</th><th>Bulan</th><th style="width:110px">Terpasang kumulatif</th><th>Catatan MDU</th><th>Kendala</th><th></th></tr></thead><tbody>
+  ${boq.map((b,i)=>{const l=last(b)||{};return `<tr><td>${esc(item(b.id_item))}</td><td>${esc(b.up3)}</td><td class="n">${rp(b.volume)}</td><td class="n">${l.vol_terpasang!==undefined?rp(l.vol_terpasang)+' <span class="muted">(bln '+l.bulan+')</span>':'-'}</td>
+   <td><select id="pb${i}" aria-label="Bulan">${opt([...Array(12)].map((_,m)=>({v:m+1,l:m+1})),bln)}</select></td><td><input id="pv${i}" type="number" min="0" step="any" value="${l.vol_terpasang??''}" aria-label="Volume terpasang"></td>
+   <td><input id="pm${i}" value="${esc(l.catatan_mdu||'')}" aria-label="Catatan MDU" placeholder="MDU tiba 12 Okt"></td><td><input id="pd${i}" value="${esc(l.kendala||'')}" aria-label="Kendala"></td>
+   <td>${canWrite('PROGRES')?`<button type="button" onclick="saveProg(${i})">Simpan</button>`:''}</td></tr>`}).join('')}</tbody></table>`:`<div class="muted">BoQ paket ini belum diisi. Buka menu Paket, pilih paket, lalu Tambah baris BoQ.</div>`}</div>`:'<div class="muted">Belum ada kontrak.</div>'}`;
+  $('#pk').addEventListener('change',e=>{PK=e.target.value;vProgres();});
+  window._boq=boq;
+}
+async function saveProg(i){
+  const b=window._boq[i], v=$('#pv'+i).value;
+  if(v===''){ toast('Isi volume terpasang dulu.','bad'); return; }
+  if(num(v)>num(b.volume)){ toast(`Volume terpasang melebihi BoQ (${b.volume}).`,'bad'); return; }
+  const bulan=num($('#pb'+i).value);
+  const prev=Math.max(0,...D.PROGRES.filter(p=>p.id_kontrak===PK&&p.id_item===b.id_item&&p.up3===b.up3&&num(p.bulan)<bulan).map(p=>num(p.vol_terpasang)));
+  if(num(v)<prev){ toast(`Kumulatif tidak boleh turun dari bulan sebelumnya (${prev}).`,'bad'); return; }
+  const ex=D.PROGRES.find(p=>p.id_kontrak===PK&&p.id_item===b.id_item&&p.up3===b.up3&&num(p.bulan)===bulan);
+  const r=await save('PROGRES',{id_progres:ex?ex.id_progres:'',id_kontrak:PK,id_item:b.id_item,up3:b.up3,bulan,vol_terpasang:num(v),catatan_mdu:$('#pm'+i).value,kendala:$('#pd'+i).value,oleh:USER.email||USER.nama,tanggal_input:TODAY});
+  if(r) vProgres();
+}
+
+/* ===== Tampilan: Pembayaran ===== */
+function vBayar(){
+  const bl=[...Array(12)].map((_,m)=>m+1);
+  const real=m=>D.BAYAR.filter(b=>b.tgl_bayar&&+String(b.tgl_bayar).slice(5,7)===m).reduce((t,b)=>t+num(b.nilai),0);
+  const plot=m=>D.PLOT_AKI.filter(a=>num(a.bulan)===m).reduce((t,a)=>t+num(a.nilai),0);
+  let cr=0,cp=0;
+  $('#view').innerHTML=`<div class="row"><h2>Pembayaran dan serapan kas</h2><div class="grow"></div>${canWrite('BAYAR')?'<button class="primary" type="button" onclick="editBayar()">Catat pembayaran</button>':''}${canWrite('PLOT_AKI')?'<button type="button" onclick="editAki()">Isi plot AKI</button>':''}</div>
+  <div class="tiles"><div class="tile"><div class="l">Terbayar</div><div class="v">${M(C.tot.bayar)}</div></div><div class="tile"><div class="l">Belum terbayar dari nilai kontrak</div><div class="v">${M(C.kontrak.reduce((t,k)=>t+k.berlaku-k.bayar,0))}</div></div>
+   <div class="tile"><div class="l">Siap tagih</div><div class="v">${C.kontrak.filter(k=>k.tgl_bast&&k.bayar<k.berlaku).length}</div><div class="n">kontrak sudah BAST, belum lunas</div></div></div>
+  <div class="panel scroll"><h3>Realisasi kas vs plot AKI per bulan (Rp)</h3><table><thead><tr><th>Bulan</th><th class="n">Plot AKI</th><th class="n">Realisasi</th><th class="n">Kumulatif plot</th><th class="n">Kumulatif realisasi</th><th>Capaian kumulatif</th></tr></thead><tbody>
+   ${bl.map(m=>{cr+=real(m);cp+=plot(m);return `<tr><td>${new Date(2026,m-1,1).toLocaleDateString('id-ID',{month:'long'})}</td><td class="n">${rp(plot(m))}</td><td class="n">${rp(real(m))}</td><td class="n">${rp(cp)}</td><td class="n">${rp(cr)}</td><td>${cp?meter(cr/cp):'<span class="muted">plot belum diisi</span>'}</td></tr>`}).join('')}</tbody></table></div>
+  <div class="panel scroll"><h3>Daftar pembayaran</h3>${D.BAYAR.length?`<table><thead><tr><th>Tgl bayar</th><th>Kontrak</th><th>Vendor</th><th>Termin</th><th class="n">Nilai</th><th></th></tr></thead><tbody>${D.BAYAR.slice().sort((a,b)=>String(b.tgl_bayar).localeCompare(a.tgl_bayar)).map(b=>{const k=C.kById[b.id_kontrak]||{};return `<tr><td>${esc(b.tgl_bayar)}</td><td class="mono" style="font-size:12px">${esc(k.no_kontrak)}</td><td>${esc(k.vendor)}</td><td>${esc(b.termin)}</td><td class="n">${rp(b.nilai)}</td><td>${canWrite('BAYAR')?`<button type="button" onclick="editBayar('${b.id_bayar}')">Ubah</button>`:''}</td></tr>`}).join('')}</tbody></table>`:'<div class="muted">Belum ada pembayaran tercatat untuk 2026.</div>'}</div>`;
+}
+function editBayar(id){
+  const b=id?D.BAYAR.find(x=>x.id_bayar===id):{termin:'Termin 1'};
+  form(id?'Ubah pembayaran':'Catat pembayaran',[{k:'id_kontrak',label:'Kontrak',type:'select',options:C.kontrak.map(k=>({v:k.id_kontrak,l:`${k.no_kontrak} · ${k.vendor} (sisa Rp ${rp(k.berlaku-k.bayar)})`})),req:1,wide:1},
+   {k:'termin',label:'Termin',type:'select',options:['Termin 1','Termin 2','Termin 3','Pelunasan','Bulanan']},{k:'tgl_tagih',label:'Tanggal tagih',type:'date'},{k:'tgl_bayar',label:'Tanggal bayar',type:'date',req:1},{k:'nilai',label:'Nilai bayar (Rp)',type:'number',req:1},{k:'bukti',label:'Bukti / nomor dokumen',wide:1}],b,
+  Object.assign(async o=>{ const k=C.kById[o.id_kontrak]; o.id_sub=k.id_sub||k.paket.id_sub; o.oleh=USER.email||USER.nama;
+    const sudah=D.BAYAR.filter(x=>x.id_kontrak===o.id_kontrak&&x.id_bayar!==o.id_bayar).reduce((t,x)=>t+num(x.nilai),0);
+    if(sudah+num(o.nilai)>k.berlaku+1){ toast(`Total bayar melebihi nilai kontrak berlaku (Rp ${rp(k.berlaku)}).`,'bad'); return false; }
+    const r=await save('BAYAR',o); if(!r) return false;
+    if(sudah+num(o.nilai)>=k.berlaku-1) await save('PAKET',{...k.paket,status:'Terbayar'}); route(); },
+   {check:o=>o.tgl_tagih&&o.tgl_bayar&&o.tgl_tagih>o.tgl_bayar?'Tanggal tagih setelah tanggal bayar. Klik Simpan lagi untuk tetap menyimpan.':null}));
+}
+function editAki(){
+  form('Isi plot AKI per bulan',[{k:'id_prk',label:'PRK',type:'select',options:D.PRK.map(p=>({v:p.id_prk,l:p.no_prk+' '+p.uraian})),req:1,wide:1}].concat([...Array(12)].map((_,m)=>({k:'b'+(m+1),label:new Date(2026,m,1).toLocaleDateString('id-ID',{month:'long'})+' (Rp)',type:'number',def:0}))),{},
+  async o=>{ for(let m=1;m<=12;m++){ const ex=D.PLOT_AKI.find(a=>a.id_prk===o.id_prk&&num(a.bulan)===m); if(num(o['b'+m])||ex){ const r=await save('PLOT_AKI',{id_prk:o.id_prk,bulan:m,nilai:num(o['b'+m])}); if(!r) return false; } } route(); });
+}
+
+/* ===== Pengaturan ===== */
+function settings(){
+  modal(`<div class="head"><h2>Pengaturan koneksi</h2><button type="button" onclick="close_()">Tutup</button></div>
+  <div class="msg info">URL API adalah alamat /exec dari deployment Apps Script. Token pribadi diberikan Admin Ren dari sheet PENGGUNA. Keduanya hanya disimpan di browser ini.</div>
+  <form id="sf" class="form"><label class="wide" for="s_api">URL API Apps Script<input id="s_api" value="${esc(CFG.api)}" placeholder="https://script.google.com/macros/s/…/exec"></label>
+  <label class="wide" for="s_tok">Token<input id="s_tok" type="password" value="${esc(CFG.token)}"></label>
+  <div class="wide row"><button class="primary" type="submit">Simpan dan muat</button>${DEMO_DATA?'<button type="button" id="s_demo">Pakai mode demo</button>':''}</div></form>`);
+  $('#sf').addEventListener('submit',e=>{e.preventDefault(); CFG={api:$('#s_api').value.trim(),token:$('#s_tok').value.trim()}; try{localStorage.setItem('aiao_cfg',JSON.stringify(CFG));}catch(x){} close_(); load();});
+  const dm=$('#s_demo'); if(dm) dm.addEventListener('click',()=>{CFG={api:'',token:''}; try{localStorage.removeItem('aiao_cfg');}catch(x){} close_(); load();});
+}
+$('#btnSetting').addEventListener('click',settings);
+$('#btnReload').addEventListener('click',load);
+load();
+</script>
+</body>
+</html>
