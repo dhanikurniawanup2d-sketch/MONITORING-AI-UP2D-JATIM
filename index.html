@@ -118,7 +118,7 @@ const ALASAN_AMD = ['Rekomposisi pekerjaan','Tambah lokasi','Kurang lokasi','Ken
 const WRITE = {'Admin Ren':['PAKET','KONTRAK','AMANDEMEN','BOQ','PROGRES','BAYAR','PLOT_AKI','KATALOG','RENCANA_MATERIAL','DISPOSISI','PROGNOSA'],'PIC User':['PAKET','BOQ','DISPOSISI','KONTRAK','AMANDEMEN','PROGRES','PROGNOSA'],'Manajer':['DISPOSISI'],'Viewer':[]};
 const canWriteAny = sh => USER && (WRITE[USER.peran]||[]).includes(sh);
 // Tempel URL /exec dari deployment Apps Script di antara tanda kutip, lalu simpan file ini.
-const API_URL = '';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyEVINono6Lk9rWI5nuce3Nz5wS5BnwZyEzz_zrED8tyM6MpgBpVAy0gcHhANE5JSOGzQ/exec';
 let CFG = {api:API_URL};
 try{ const c=JSON.parse(localStorage.getItem('aiao_cfg')||'{}'); if(!API_URL && c.api) CFG.api=c.api; }catch(e){}
 let SESI = ''; try{ SESI = localStorage.getItem('aiao_sesi')||''; }catch(e){}
