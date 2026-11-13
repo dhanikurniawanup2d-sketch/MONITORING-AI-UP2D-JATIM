@@ -28,6 +28,7 @@
   --warn:#f0b54a; --warn-soft:#3a2c10; --bad:#ff8a80; --bad-soft:#3d1a18;
   --bar1:#5db3e6; --bar2:#2f7cad; --bar3:#33475a; color-scheme:dark;}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
 header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
 header h1{font:600 18px var(--display);margin:0;letter-spacing:.2px}
@@ -88,6 +89,8 @@ label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute
   <span id="mode" class="chip mute">Memuat</span>
   <span id="who" class="muted"></span>
   <button id="btnReload" type="button">Muat ulang</button>
+  <button id="btnPass" type="button" hidden>Ganti password</button>
+  <button id="btnLogout" type="button" hidden>Keluar</button>
   <button id="btnSetting" type="button">Pengaturan</button>
 </header>
 <nav id="nav">
@@ -114,8 +117,16 @@ const ALASAN_AMD = ['Rekomposisi pekerjaan','Tambah lokasi','Kurang lokasi','Ken
 // PRK, sub PRK, pagu, dan KHS dibaca dari workbook dan diubah langsung di sheet sumbernya.
 const WRITE = {'Admin Ren':['PAKET','KONTRAK','AMANDEMEN','BOQ','PROGRES','BAYAR','PLOT_AKI','KATALOG','RENCANA_MATERIAL','DISPOSISI','PROGNOSA'],'PIC User':['PAKET','BOQ','DISPOSISI','KONTRAK','AMANDEMEN','PROGRES','PROGNOSA'],'Manajer':['DISPOSISI'],'Viewer':[]};
 const canWriteAny = sh => USER && (WRITE[USER.peran]||[]).includes(sh);
-let CFG = {api:'',token:''};
-try{ CFG = Object.assign(CFG, JSON.parse(localStorage.getItem('aiao_cfg')||'{}')); }catch(e){}
+// Tempel URL /exec dari deployment Apps Script di antara tanda kutip, lalu simpan file ini.
+const API_URL = '';
+let CFG = {api:API_URL};
+try{ const c=JSON.parse(localStorage.getItem('aiao_cfg')||'{}'); if(!API_URL && c.api) CFG.api=c.api; }catch(e){}
+let SESI = ''; try{ SESI = localStorage.getItem('aiao_sesi')||''; }catch(e){}
+function setSesi(v){ SESI=v||''; try{ v?localStorage.setItem('aiao_sesi',v):localStorage.removeItem('aiao_sesi'); }catch(e){} }
+async function post(body){
+  const r = await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  return r.json();
+}
 let USER = null, D = null, C = null, chart = null;
 
 /* ===== Utilitas ===== */
@@ -133,22 +144,26 @@ function opt(list, val, blank){ return (blank?`<option value="">${esc(blank)}</o
 /* ===== Data ===== */
 async function load(){
   if(CFG.api){
+    if(!SESI){ showLogin(); return; }
     try{
-      const r = await fetch(CFG.api+'?token='+encodeURIComponent(CFG.token));
+      $('#mode').className='chip mute'; $('#mode').textContent='Memuat data…';
+      const r = await fetch(CFG.api+'?sesi='+encodeURIComponent(SESI));
       const j = await r.json();
+      if(j.kode==='SESI'){ setSesi(''); showLogin('Sesi Anda berakhir. Silakan login lagi.'); return; }
       if(!j.ok) throw new Error(j.error);
+      $('#nav').hidden=false; $('#btnPass').hidden=false; $('#btnLogout').hidden=false;
       D = j.data; USER = j.user;
       $('#mode').className='chip good'; $('#mode').textContent='Terhubung ke workbook MONITORING SKKI';
     }catch(e){
       D = null; $('#mode').className='chip bad'; $('#mode').textContent='Gagal terhubung';
-      $('#view').innerHTML=`<div class="msg bad">Data tidak bisa dimuat: ${esc(e.message)}. Periksa URL API dan token di Pengaturan.</div>`; return;
+      $('#view').innerHTML=`<div class="msg bad">Data tidak bisa dimuat: ${esc(e.message)}. Periksa koneksi internet atau URL API di Pengaturan.</div>`; return;
     }
   } else if(DEMO_DATA){
     D = JSON.parse(JSON.stringify(DEMO_DATA)); USER = {nama:'Mode demo',peran:'Admin Ren',email:''};
     $('#mode').className='chip warn'; $('#mode').textContent='Mode demo: perubahan tidak tersimpan';
   } else {
     $('#mode').className='chip bad'; $('#mode').textContent='Belum terhubung';
-    $('#view').innerHTML='<div class="msg info">Isi URL API Apps Script dan token Anda di Pengaturan untuk memuat data.</div>'; settings(); return;
+    $('#view').innerHTML='<div class="msg info">URL API Apps Script belum diisi. Isi di Pengaturan, atau tanam di baris API_URL pada index.html.</div>'; settings(); return;
   }
   ['PRK','SUB_PRK','PAGU_VERSI','PLOT_AKI','KATALOG','RENCANA_MATERIAL','KHS','PAKET','BOQ','DISPOSISI','KONTRAK','AMANDEMEN','PROGRES','BAYAR','PROGNOSA'].forEach(k=>D[k]=D[k]||[]);
   $('#who').textContent = USER.nama+' · '+USER.peran;
@@ -162,8 +177,9 @@ async function save(sh, rec){
   let out = rec;
   if(CFG.api){
     try{
-      const r = await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:CFG.token,action:'upsert',sheet:sh,record:rec})});
-      const j = await r.json(); if(!j.ok){ toast(j.error,'bad'); return null; } out = j.record;
+      const j = await post({sesi:SESI,action:'upsert',sheet:sh,record:rec});
+      if(j.kode==='SESI'){ close_(); setSesi(''); showLogin('Sesi Anda berakhir. Silakan login lagi; perubahan terakhir belum tersimpan.'); return null; }
+      if(!j.ok){ toast(j.error,'bad'); return null; } out = j.record;
     }catch(e){ toast('Gagal menyimpan: '+e.message,'bad'); return null; }
   } else if(KEY[sh] && !rec[KEY[sh]]) out = Object.assign({},rec,{[KEY[sh]]:localId(sh)});
   const k = KEY[sh];
@@ -566,18 +582,74 @@ function editAki(){
   async o=>{ for(let m=1;m<=12;m++){ const ex=D.PLOT_AKI.find(a=>a.id_prk===o.id_prk&&num(a.bulan)===m); if(num(o['b'+m])||ex){ const r=await save('PLOT_AKI',{id_prk:o.id_prk,bulan:m,nilai:num(o['b'+m])}); if(!r) return false; } } route(); });
 }
 
+/* ===== Login ===== */
+function showLogin(msg){
+  D=null; USER=null; $('#nav').hidden=true; $('#btnPass').hidden=true; $('#btnLogout').hidden=true; $('#who').textContent='';
+  $('#mode').className='chip mute'; $('#mode').textContent='Belum login';
+  $('#view').innerHTML=`<div class="panel" style="max-width:420px;margin:40px auto;width:100%">
+    <h2 style="margin-bottom:4px">Masuk</h2><div class="muted" style="margin-bottom:12px">Gunakan username dan password dari Admin Perencanaan.</div>
+    ${msg?`<div class="msg info" style="margin-bottom:10px">${esc(msg)}</div>`:''}
+    <form id="lf" class="form" style="grid-template-columns:1fr" novalidate>
+      <label for="l_user">Username<input id="l_user" autocomplete="username" autocapitalize="none" required></label>
+      <label for="l_pass">Password<input id="l_pass" type="password" autocomplete="current-password" required></label>
+      <div id="l_err"></div>
+      <button class="primary" type="submit" id="l_btn">Masuk</button>
+    </form></div>`;
+  $('#l_user').focus();
+  $('#lf').addEventListener('input',()=>$('#l_err').innerHTML='');
+  $('#lf').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const u=$('#l_user').value.trim(), p=$('#l_pass').value;
+    if(!u||!p){ $('#l_err').innerHTML='<div class="msg bad">Isi username dan password.</div>'; return; }
+    $('#l_btn').disabled=true; $('#l_btn').textContent='Memeriksa…';
+    try{
+      const j=await post({action:'login',username:u,password:p});
+      if(!j.ok){ $('#l_err').innerHTML=`<div class="msg bad">${esc(j.error)}</div>`; return; }
+      setSesi(j.sesi); await load();
+      if(j.wajib_ganti) gantiPassword(true);
+    }catch(x){ $('#l_err').innerHTML='<div class="msg bad">Tidak bisa terhubung ke server. Periksa koneksi internet.</div>'; }
+    finally{ const b=$('#l_btn'); if(b){ b.disabled=false; b.textContent='Masuk'; } }
+  });
+}
+function gantiPassword(wajib){
+  modal(`<div class="head"><h2>Ganti password</h2>${wajib?'':'<button type="button" onclick="close_()">Tutup</button>'}</div>
+  ${wajib?'<div class="msg warn">Anda masuk dengan password awal dari Admin. Buat password pribadi sekarang.</div>':''}
+  <form id="pf" class="form" style="grid-template-columns:1fr" novalidate>
+    <label for="p_old">Password saat ini<input id="p_old" type="password" autocomplete="current-password"></label>
+    <label for="p_new">Password baru (minimal 8 karakter)<input id="p_new" type="password" autocomplete="new-password"></label>
+    <label for="p_new2">Ulangi password baru<input id="p_new2" type="password" autocomplete="new-password"></label>
+    <div id="p_err"></div><div class="row"><button class="primary" type="submit">Simpan password</button></div></form>`);
+  $('#pf').addEventListener('input',()=>$('#p_err').innerHTML='');
+  $('#pf').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const a=$('#p_old').value,b=$('#p_new').value,c=$('#p_new2').value;
+    const err=t=>$('#p_err').innerHTML=`<div class="msg bad">${esc(t)}</div>`;
+    if(!a) return err('Isi password saat ini.'); if(b.length<8) return err('Password baru minimal 8 karakter.'); if(b!==c) return err('Ulangan password baru tidak sama.'); if(a===b) return err('Password baru harus berbeda dari yang lama.');
+    try{ const j=await post({sesi:SESI,action:'ganti_password',lama:a,baru:b});
+      if(j.kode==='SESI'){ close_(); setSesi(''); showLogin('Sesi berakhir. Login lagi lalu ganti password.'); return; }
+      if(!j.ok) return err(j.error); close_(); toast('Password berhasil diganti','good');
+    }catch(x){ err('Tidak bisa terhubung ke server.'); }
+  });
+}
+async function logout(){
+  try{ if(CFG.api&&SESI) await post({sesi:SESI,action:'logout'}); }catch(e){}
+  setSesi(''); showLogin('Anda sudah keluar.');
+}
+
 /* ===== Pengaturan ===== */
 function settings(){
   modal(`<div class="head"><h2>Pengaturan koneksi</h2><button type="button" onclick="close_()">Tutup</button></div>
-  <div class="msg info">URL API adalah alamat /exec dari deployment Apps Script. Token pribadi diberikan Admin Ren dari sheet PENGGUNA. Keduanya hanya disimpan di browser ini.</div>
-  <form id="sf" class="form"><label class="wide" for="s_api">URL API Apps Script<input id="s_api" value="${esc(CFG.api)}" placeholder="https://script.google.com/macros/s/…/exec"></label>
-  <label class="wide" for="s_tok">Token<input id="s_tok" type="password" value="${esc(CFG.token)}"></label>
-  <div class="wide row"><button class="primary" type="submit">Simpan dan muat</button>${DEMO_DATA?'<button type="button" id="s_demo">Pakai mode demo</button>':''}</div></form>`);
-  $('#sf').addEventListener('submit',e=>{e.preventDefault(); CFG={api:$('#s_api').value.trim(),token:$('#s_tok').value.trim()}; try{localStorage.setItem('aiao_cfg',JSON.stringify(CFG));}catch(x){} close_(); load();});
-  const dm=$('#s_demo'); if(dm) dm.addEventListener('click',()=>{CFG={api:'',token:''}; try{localStorage.removeItem('aiao_cfg');}catch(x){} close_(); load();});
+  <div class="msg info">URL API adalah alamat /exec dari deployment Apps Script. Bila URL sudah ditanam di index.html, pengaturan ini tidak perlu diisi.</div>
+  <form id="sf" class="form"><label class="wide" for="s_api">URL API Apps Script<input id="s_api" value="${esc(CFG.api)}" placeholder="https://script.google.com/macros/s/…/exec"${API_URL?' readonly':''}></label>
+  <div class="wide row">${API_URL?'':'<button class="primary" type="submit">Simpan dan muat</button>'}${DEMO_DATA?'<button type="button" id="s_demo">Pakai mode demo</button>':''}</div></form>`);
+  $('#sf').addEventListener('submit',e=>{e.preventDefault(); if(API_URL) return; CFG={api:$('#s_api').value.trim()}; try{localStorage.setItem('aiao_cfg',JSON.stringify(CFG));}catch(x){} close_(); load();});
+  const dm=$('#s_demo'); if(dm) dm.addEventListener('click',()=>{CFG={api:''}; try{localStorage.removeItem('aiao_cfg');}catch(x){} close_(); load();});
 }
 $('#btnSetting').addEventListener('click',settings);
 $('#btnReload').addEventListener('click',load);
+$('#btnPass').addEventListener('click',()=>gantiPassword(false));
+$('#btnLogout').addEventListener('click',logout);
+if(API_URL) $('#btnSetting').hidden=true;
 load();
 </script>
 </body>
